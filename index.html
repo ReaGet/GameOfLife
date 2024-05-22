@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game of Life</title>
+  <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+  <aside>
+    <label for="width">
+      Ширина поля
+      <input id="width" type="number" value="100" />
+    </label>
+    <label for="height">
+      Высота поля
+      <input id="height" type="number" value="100" />
+    </label>
+
+    <button id="generate">Автогенерация</button>
+    <button id="start">Начать игру</button>
+  </aside>
+  <main id="app">
+    <canvas></canvas>
+  </main>
+  <script src="./index.js" type="module"></script>
+</body>
+</html>
