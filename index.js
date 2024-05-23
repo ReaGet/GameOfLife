@@ -16,15 +16,18 @@ class Board {
     this.color = "#000";
     this.bgColor = "#fff";
     this.cellsToDraw = [];
+    this.state = false;
   }
 
   createBoard() {
     for (let y = 0; y < this.size; y++) {
       this.grid[y] = [];
+      this.nextGrid[y] = [];
       for (let x = 0; x < this.size; x++) {
         this.grid[y].push(
           Math.random() > 0.81
         );
+        this.nextGrid[y].push(false);
       }
     }
   }
@@ -39,12 +42,26 @@ class Board {
 
   update() {
     for (let y = 0; y < this.size; y++) {
-      this.nextGrid[y] = [];
+      // this.nextGrid[y] = [];
       for (let x = 0; x < this.size; x++) {
-        this.nextGrid[y].push(this.getNewValue(x, y));
+        // this.nextGrid[y].push(this.getNewValue(x, y));
+        if (!this.state) {
+          this.nextGrid[y][x] = this.getNewValue(this.grid, x, y);
+          this.createArrayToDraw(this.nextGrid, x, y);
+        } else {
+          this.grid[y][x] = this.getNewValue(this.nextGrid, x, y);
+          this.createArrayToDraw(this.grid, x, y);
+        }
       }
     }
-    this.copyAndReset();
+    this.state = !this.state;
+    // this.copyAndReset();
+  }
+
+  createArrayToDraw(grid, x, y) {
+    if (grid[y][x]) {
+      this.cellsToDraw.push([x, y]);
+    }
   }
 
   render(ctx, size) {
@@ -54,7 +71,6 @@ class Board {
     //     ctx.fillRect(x * size, y * size, size, size);
     //   }
     // }
-    console.log(this.cellsToDraw.length)
     for (let i = 0; i < this.cellsToDraw.length; i++) {
       const [x, y] = this.cellsToDraw[i];
       ctx.fillStyle = this.color;
@@ -63,34 +79,34 @@ class Board {
     this.cellsToDraw = [];
   }
   
-  getNewValue(x, y) {
-    const neighbours = this.getNeighbours(x, y);
+  getNewValue(grid, x, y) {
+    const neighbours = this.getNeighbours(grid, x, y);
     
-    if (!this.grid[y][x]) {
+    if (!grid[y][x]) {
       return this.ruleOne(neighbours);
     } 
     
     return this.ruleTwo(neighbours);
   }
 
-  getNeighbours(x, y) {
+  getNeighbours(grid, x, y) {
     const neighbours = [];
     this.offsets.map((offset) => {
-      const neighbour = this.getNeighbour(x + offset[0], y + offset[1]);
+      const neighbour = this.getNeighbour(grid, x + offset[0], y + offset[1]);
       if (neighbour != null)
         neighbours.push(neighbour);
     });
     return neighbours;
   }
 
-  getNeighbour(x, y) {
+  getNeighbour(grid, x, y) {
     let _x = x, _y = y;
-    if (x < 0) _x = this.grid.length - 1;
-    if (x > this.grid.length - 1) _x = 0;
-    if (y < 0) _y = this.grid.length - 1;
-    if (y > this.grid.length - 1) _y = 0;
+    if (x < 0) _x = grid.length - 1;
+    if (x > grid.length - 1) _x = 0;
+    if (y < 0) _y = grid.length - 1;
+    if (y > grid.length - 1) _y = 0;
 
-    return this.grid[_y][_x];
+    return grid[_y][_x];
   }
 
   ruleOne(neighbours) {
@@ -133,7 +149,7 @@ function getMapSizeAndOffset() {
   }
 }
 
-const GRID_SIZE = 500;
+const GRID_SIZE = 1000;
 const board = new Board(GRID_SIZE);
 board.createBoard();
 
@@ -147,7 +163,7 @@ canvas.height = canvasWrapper.offsetHeight;
 const { size, x, y } = getMapSizeAndOffset();
 const cellSize = size / GRID_SIZE;
 
-setInterval(() => {
+requestAnimationFrame(function draw() {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = '#fff';
@@ -155,4 +171,5 @@ setInterval(() => {
   board.update();
   board.render(ctx, cellSize);
   ctx.restore();
-}, 1000 / 10);
+  requestAnimationFrame(draw);
+});
