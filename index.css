@@ -14,6 +14,10 @@ main {
   height: 100vh;
 }
 
+.canvas-wrapper {
+  display: flex;
+}
+
 canvas {
   width: 100%;
   height: 100%;

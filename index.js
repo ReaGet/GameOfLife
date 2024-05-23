@@ -42,17 +42,22 @@ class Board {
     }
   }
 
-  update(ctx, size) {
+  // update(ctx, size) {
+  update(callback) {
+    let i = 0;
     for (let y = 0; y < this.size; y++) {
       for (let x = 0; x < this.size; x++) {
+        i++;
         if (!this.state) {
           this.nextGrid[y][x] = this.getNewValue(this.grid, x, y);
-          if (this.nextGrid[y][x])
-            this.renderCell(ctx, x, y, size);
+          callback(this.nextGrid[y][x], i);
+          // if (this.nextGrid[y][x])
+            // this.renderCell(ctx, x, y, size);
         } else {
           this.grid[y][x] = this.getNewValue(this.nextGrid, x, y);
-          if (this.grid[y][x])
-            this.renderCell(ctx, x, y, size);
+          callback(this.grid[y][x], i);
+          // if (this.grid[y][x])
+            // this.renderCell(ctx, x, y, size);
         }
       }
     }
@@ -125,7 +130,7 @@ function getMapSizeAndOffset() {
   }
 }
 
-const GRID_SIZE = 1000;
+const GRID_SIZE = 500;
 const board = new Board(GRID_SIZE);
 board.createBoard();
 
@@ -133,19 +138,27 @@ const canvasWrapper = document.querySelector("main")
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled= false;
-canvas.width = canvasWrapper.offsetWidth;
-canvas.height = canvasWrapper.offsetHeight;
+canvas.width = canvas.height = GRID_SIZE;
+// canvas.width = canvasWrapper.offsetWidth;
+// canvas.height = canvasWrapper.offsetHeight;
 
 const { size, x, y } = getMapSizeAndOffset();
 const cellSize = size / GRID_SIZE;
+const data = ctx.createImageData(GRID_SIZE, GRID_SIZE)
+const buffer = new Uint32Array(data.data.buffer);
 
 requestAnimationFrame(function draw() {
   ctx.save();
-  ctx.translate(x, y);
+  ctx.scale(100, 100);
+  // ctx.translate(x, y);
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, size, size);
-  runWithExecutionCalc("update", () => board.update(ctx, cellSize));
+  // runWithExecutionCalc("update", () => board.update(ctx, cellSize));
   // board.update(ctx, cellSize);
+  runWithExecutionCalc("update", () => board.update((state, index) => {
+    buffer[index] = state ? 0xFF000000 : 0xFFFFFFFF;
+  }));
+  ctx.putImageData(data, x, y);
   ctx.restore();
   requestAnimationFrame(draw);
 });
