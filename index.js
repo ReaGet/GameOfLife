@@ -1,3 +1,5 @@
+// https://stackoverflow.com/questions/58482163/how-to-improve-html-canvas-performance-drawing-pixels
+
 class Board {
   constructor(size) {
     this.size = size;
@@ -40,94 +42,68 @@ class Board {
     }
   }
 
-  update() {
+  update(ctx, size) {
     for (let y = 0; y < this.size; y++) {
-      // this.nextGrid[y] = [];
       for (let x = 0; x < this.size; x++) {
-        // this.nextGrid[y].push(this.getNewValue(x, y));
         if (!this.state) {
           this.nextGrid[y][x] = this.getNewValue(this.grid, x, y);
-          this.createArrayToDraw(this.nextGrid, x, y);
+          if (this.nextGrid[y][x])
+            this.renderCell(ctx, x, y, size);
         } else {
           this.grid[y][x] = this.getNewValue(this.nextGrid, x, y);
-          this.createArrayToDraw(this.grid, x, y);
+          if (this.grid[y][x])
+            this.renderCell(ctx, x, y, size);
         }
       }
     }
     this.state = !this.state;
-    // this.copyAndReset();
   }
 
-  createArrayToDraw(grid, x, y) {
-    if (grid[y][x]) {
-      this.cellsToDraw.push([x, y]);
-    }
-  }
-
-  render(ctx, size) {
-    // for (let y = 0; y < this.size; y++) {
-    //   for (let x = 0; x < this.size; x++) {
-    //     ctx.fillStyle = this.grid[y][x] ? this.color : this.bgColor;
-    //     ctx.fillRect(x * size, y * size, size, size);
-    //   }
-    // }
-    for (let i = 0; i < this.cellsToDraw.length; i++) {
-      const [x, y] = this.cellsToDraw[i];
-      ctx.fillStyle = this.color;
-      ctx.fillRect(x * size, y * size, size, size);
-    }
-    this.cellsToDraw = [];
+  renderCell(ctx, x, y, size) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(x * size, y * size, size, size);
   }
   
   getNewValue(grid, x, y) {
-    const neighbours = this.getNeighbours(grid, x, y);
+    const neighboursLength = this.getNeighbours(grid, x, y);
     
     if (!grid[y][x]) {
-      return this.ruleOne(neighbours);
+      return this.ruleOne(neighboursLength);
     } 
     
-    return this.ruleTwo(neighbours);
+    return this.ruleTwo(neighboursLength);
   }
 
   getNeighbours(grid, x, y) {
-    const neighbours = [];
-    this.offsets.map((offset) => {
-      const neighbour = this.getNeighbour(grid, x + offset[0], y + offset[1]);
-      if (neighbour != null)
-        neighbours.push(neighbour);
-    });
-    return neighbours;
+    return (
+      this.getNeighbour(grid, x - 1, y - 1) +
+      this.getNeighbour(grid, x, y - 1) +
+      this.getNeighbour(grid, x + 1, y - 1) +
+      this.getNeighbour(grid, x - 1, y) +
+      this.getNeighbour(grid, x + 1, y) +
+      this.getNeighbour(grid, x - 1, y + 1) +
+      this.getNeighbour(grid, x, y + 1) +
+      this.getNeighbour(grid, x + 1, y + 1)
+    )
   }
 
   getNeighbour(grid, x, y) {
+    const length = grid.length;
     let _x = x, _y = y;
-    if (x < 0) _x = grid.length - 1;
-    if (x > grid.length - 1) _x = 0;
-    if (y < 0) _y = grid.length - 1;
-    if (y > grid.length - 1) _y = 0;
+    if (x < 0) _x = length - 1;
+    if (x > length - 1) _x = 0;
+    if (y < 0) _y = length - 1;
+    if (y > length - 1) _y = 0;
 
     return grid[_y][_x];
   }
 
-  ruleOne(neighbours) {
-    return neighbours.filter(n => n).length === 3;
+  ruleOne(neighboursLength) {
+    return neighboursLength === 3;
   }
 
-  ruleTwo(neighbours) {
-    const count = neighbours.filter(n => n).length;
-    return (count === 2 || count === 3); 
-  }
-
-  copyAndReset() {
-    for (let y = 0; y < this.size; y++) {
-      for (let x = 0; x < this.size; x++) {
-        this.grid[y][x] = this.nextGrid[y][x];
-        this.nextGrid[y][x] = false;
-        if (this.grid[y][x]) {
-          this.cellsToDraw.push([x, y]);
-        }
-      }
-    }
+  ruleTwo(neighboursLength) {
+    return (neighboursLength === 2 || neighboursLength === 3); 
   }
 }
 
@@ -168,8 +144,14 @@ requestAnimationFrame(function draw() {
   ctx.translate(x, y);
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, size, size);
-  board.update();
-  board.render(ctx, cellSize);
+  runWithExecutionCalc("update", () => board.update(ctx, cellSize));
+  // board.update(ctx, cellSize);
   ctx.restore();
   requestAnimationFrame(draw);
 });
+
+const runWithExecutionCalc = (label, fn) => {
+  console.time(label);
+  fn();
+  console.timeEnd(label);
+}
