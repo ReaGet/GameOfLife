@@ -19,6 +19,7 @@ class Board {
     this.bgColor = "#fff";
     this.cellsToDraw = [];
     this.state = false;
+    this.gridLength = 0;
   }
 
   createBoard() {
@@ -44,29 +45,21 @@ class Board {
 
   // update(ctx, size) {
   update(callback) {
-    let i = 0;
+    // let i = 0;
     for (let y = 0; y < this.size; y++) {
       for (let x = 0; x < this.size; x++) {
-        i++;
-        if (!this.state) {
-          this.nextGrid[y][x] = this.getNewValue(this.grid, x, y);
-          callback(this.nextGrid[y][x], i);
-          // if (this.nextGrid[y][x])
-            // this.renderCell(ctx, x, y, size);
-        } else {
-          this.grid[y][x] = this.getNewValue(this.nextGrid, x, y);
-          callback(this.grid[y][x], i);
-          // if (this.grid[y][x])
-            // this.renderCell(ctx, x, y, size);
-        }
+        // i++;
+        // const index = (x + this.size * y) * 4;
+        // if (!this.state) {
+        //   this.nextGrid[y][x] = this.getNewValue(this.grid, x, y);
+        //   callback(this.nextGrid[y][x], index);
+        // } else {
+        //   this.grid[y][x] = this.getNewValue(this.nextGrid, x, y);
+        //   callback(this.grid[y][x], index);
+        // }
       }
     }
     this.state = !this.state;
-  }
-
-  renderCell(ctx, x, y, size) {
-    ctx.fillStyle = this.color;
-    ctx.fillRect(x * size, y * size, size, size);
   }
   
   getNewValue(grid, x, y) {
@@ -93,12 +86,13 @@ class Board {
   }
 
   getNeighbour(grid, x, y) {
-    const length = grid.length;
-    let _x = x, _y = y;
-    if (x < 0) _x = length - 1;
-    if (x > length - 1) _x = 0;
-    if (y < 0) _y = length - 1;
-    if (y > length - 1) _y = 0;
+    // const length = this.size;
+    let _x = 0, _y = 0;
+    // let _x = x, _y = y;
+    // if (x < 0) _x = length - 1;
+    // if (x > length - 1) _x = 0;
+    // if (y < 0) _y = length - 1;
+    // if (y > length - 1) _y = 0;
 
     return grid[_y][_x];
   }
@@ -112,25 +106,9 @@ class Board {
   }
 }
 
-function getMapSizeAndOffset() {
-  const { width, height } = canvas;
+const sourceCanvas = document.createElement("canvas");
 
-  if (width > height) {
-    return {
-      size: height,
-      x: (width - height) / 2,
-      y: 0
-    }
-  } else {
-    return {
-      size: width,
-      x: 0,
-      y: (height - width) / 2
-    }
-  }
-}
-
-const GRID_SIZE = 500;
+const GRID_SIZE = 5000;
 const board = new Board(GRID_SIZE);
 board.createBoard();
 
@@ -138,28 +116,41 @@ const canvasWrapper = document.querySelector("main")
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled= false;
-canvas.width = canvas.height = GRID_SIZE;
+sourceCanvas.width = sourceCanvas.height = GRID_SIZE;
+const ctx2 = sourceCanvas.getContext("2d");
+
 // canvas.width = canvasWrapper.offsetWidth;
 // canvas.height = canvasWrapper.offsetHeight;
+canvas.width = canvas.height = Math.min(canvasWrapper.offsetWidth, canvasWrapper.offsetHeight);
 
-const { size, x, y } = getMapSizeAndOffset();
-const cellSize = size / GRID_SIZE;
-const data = ctx.createImageData(GRID_SIZE, GRID_SIZE)
-const buffer = new Uint32Array(data.data.buffer);
+const getScale = (a, b) => {
+  return Math.min(a, b) / Math.max(a, b);
+}
+
+const data = ctx2.createImageData(GRID_SIZE, GRID_SIZE);
+const scale = Math.max(1, getScale(GRID_SIZE, canvas.width));
+console.log(scale, GRID_SIZE, canvas.width)
 
 requestAnimationFrame(function draw() {
-  ctx.save();
-  ctx.scale(100, 100);
-  // ctx.translate(x, y);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, size, size);
-  // runWithExecutionCalc("update", () => board.update(ctx, cellSize));
-  // board.update(ctx, cellSize);
   runWithExecutionCalc("update", () => board.update((state, index) => {
-    buffer[index] = state ? 0xFF000000 : 0xFFFFFFFF;
+    const color = state ? 0 : 255;
+    data.data[index] = color;
+    data.data[index + 1] = color;
+    data.data[index + 2] = color;
+    data.data[index + 3] = 255;
   }));
-  ctx.putImageData(data, x, y);
-  ctx.restore();
+  // board.update((state, index) => {
+  //   const color = state ? 0 : 255;
+  //   data.data[index] = color;
+  //   data.data[index + 1] = color;
+  //   data.data[index + 2] = color;
+  //   data.data[index + 3] = 255;
+  // })
+  // ctx.save();
+  // ctx2.putImageData(data, 0, 0);
+  // ctx.scale(scale, scale);
+  // ctx.drawImage(sourceCanvas, 0, 0)
+  // ctx.restore();
   requestAnimationFrame(draw);
 });
 
@@ -168,3 +159,5 @@ const runWithExecutionCalc = (label, fn) => {
   fn();
   console.timeEnd(label);
 }
+
+const arr = new Ui
