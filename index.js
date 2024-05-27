@@ -1,79 +1,62 @@
 class Board {
-  constructor(size) {
-    this.size = size;
-    this.grid = [];
-    this.tempGrid = null;
-    this.gridLength = 0;
+  init(imageData, width, height) {
+    this.width = width;
+    this.height = height
+    this.grid = imageData;
+    this.tempGrid = imageData;
+    this.gridLength = imageData.data.length / 4;
+    this.autoGenerate();
   }
 
-  createBoard() {
-    this.grid = new Uint8Array(this.size * this.size);
-    this.tempGrid = new Uint8Array(this.size * this.size);
-
-    for(let i = 0; i < this.grid.length; i++) {
-      const value = Math.random() > 0.81 ? 1 : 0;
-      this.grid[i] = value;
-      this.tempGrid[i] = value;
-    }
-    this.gridLength = this.grid.length;
-  }
-
-  autoGeneration() {
-    for (let y = 0; y < this.size; y++) {
-      for (let x = 0; x < this.size; x++) {
-        this.grid[y][x] = Math.random() > 0.81 ? 1 : 0;
-      }
+  autoGenerate() {
+    for(let i = 0; i < this.grid.data.length; i += 4) {
+      const value = Math.random() > 0.1 ? 1 : 0;
+      this.setCell(this.grid, i, value);
     }
   }
 
-  update(callback = () => {}) {
-    for (let i = 0; i < this.grid.length; i++) {       
-      const newValue = this.getNewValue(this.tempGrid, i);
-      this.grid[i] = newValue;
-      callback(this.grid[i], i);
+  nextGen() {
+    for (let i = 0; i < this.grid.data.length; i += 4) {       
+      const value = this.getNewValue(this.tempGrid, i);
+      this.setCell(this.grid, i, value);
     }
-    this.tempGrid = this.grid.slice(0, this.grid.length);
+    this.tempGrid = this.grid;
+  }
+
+  setCell(grid, index, value) {
+    const color = value ? 0 : 255;
+    console.log(color)
+    grid.data[index] = color;
+    grid.data[index + 1] = color;
+    grid.data[index + 2] = color;
+    grid.data[index + 3] = 255;
   }
   
   getNewValue(grid, index) {
     const neighboursLength = this.getNeighbours(grid, index);
-    
-    if (!grid[index]) {
-      return this.ruleOne(neighboursLength);
-    } 
-    
+    if (!grid[index]) return this.ruleOne(neighboursLength);
     return this.ruleTwo(neighboursLength);
   }
 
   getNeighbours(grid, index) {
-    const x = index % this.size,
-        y = ~~(index / this.size);
+    const x = index % this.width,
+        y = ~~(index / this.width);
 
-    const top = index + (y == 0 ? this.gridLength - this.size : -this.size);
-    const bottom = index + ((y == (this.size - 1)) ? -(this.gridLength - this.size) : this.size);
-    const left = x == 0 ? this.size - 1 : -1;
-    const right = x == (this.size - 1) ? -(this.size - 1) : 1;
+    const left = x == 0 ? this.width - 1 : -1;
+    const right = x == (this.width - 1) ? -(this.width - 1) : 1;
+    const top = index + (y == 0 ? this.gridLength - this.width : -this.width);
+    const bottom = index + ((y == (this.height - 1)) ? -(this.gridLength - this.width) : this.width);
 
-    // const x = index % 3000,
-    //     y = ~~(index / 3000);
-
-    // const top = index + (y == 0 ? 9000000 - 3000 : -3000);
-    // const bottom = index + ((y == (3000 - 1)) ? -(9000000 - 3000) : 3000);
-    // const left = x == 0 ? 3000 - 1 : -1;
-    // const right = x == (3000 - 1) ? -(3000 - 1) : 1;
-
-    // return 0;
-
-    const count = grid[top] + 
+    return (
+      grid[top] + 
       grid[bottom] +
       grid[index + left] + 
       grid[index + right] + 
       grid[top + left] +
       grid[top + right] + 
       grid[bottom + left] + 
-      grid[bottom + right];
-
-    return count;
+      grid[bottom + right]
+    );
   }
 
   ruleOne(neighboursLength) {
@@ -86,73 +69,65 @@ class Board {
 }
 
 const timeEl = document.querySelector("#time");
+let start = false;
 
-const sourceCanvas = document.createElement("canvas");
+const UI = {
+  width: document.querySelector("#width"),
+  height: document.querySelector("#height"),
+  generate: document.querySelector("#generate"),
+  start: document.querySelector("#start"),
+}
 
-const GRID_SIZE = 1000;
-const board = new Board(GRID_SIZE);
-board.createBoard();
+const GRID = {
+  width: 0,
+  height: 0,
+};
 
-const canvasWrapper = document.querySelector("main")
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
-ctx.imageSmoothingEnabled= false;
-sourceCanvas.width = sourceCanvas.height = GRID_SIZE;
-const ctx2 = sourceCanvas.getContext("2d");
+// ctx.imageSmoothingEnabled = false;
 
-canvas.width = canvas.height = Math.min(canvasWrapper.offsetWidth, canvasWrapper.offsetHeight);
+let data = [];
 
-const getScale = (canvas, grid) => {
-  const cw = canvas.width,
-    ch = canvas.height,
-    gw = grid.width,
-    gh = grid.height;
+const board = new Board();
 
-  console.log(cw, ch)
-  console.log(gw, gh)
-  
-  if (cw < gw || ch < gh) {
-    if (gw < gh) {
-      if(gw > cw) {
-        return cw / gw;
-      }
-    } else {
-      if(gw > cw) {
-        return cw / gw;
-      }
-    }
-
-  }
-
-  return 1;
+const init = () => {
+  canvas.width = GRID.width = +UI.width.value;   
+  canvas.height = GRID.height = +UI.height.value;
+  data = ctx.createImageData(GRID.width, GRID.height);
+  board.init(data, GRID.width, GRID.height);
 }
 
-const data = ctx2.createImageData(GRID_SIZE, GRID_SIZE);
-const scale = getScale(canvas, { width: GRID_SIZE, height: GRID_SIZE });
-console.log(getScale(GRID_SIZE, canvas.width), scale)
+const update = () => {
+  runWithExecutionCalc(() => {
+    board.nextGen();
+  });
+  console.log(board.grid)
+  ctx.putImageData(board.grid, 0, 0);
+}
 
-requestAnimationFrame(function draw() {
-  ctx.fillStyle = "red"
-  ctx.fillRect(0, 0, 100, 100);
-  runWithExecutionCalc("update", () => board.update((state, index) => {
-    const color = state ? 0 : 255;
-    data.data[index * 4] = color;
-    data.data[index * 4 + 1] = color;
-    data.data[index * 4 + 2] = color;
-    data.data[index * 4 + 3] = 255;
-  }));
-  ctx.save();
-  ctx2.putImageData(data, 0, 0);
-  // ctx.scale(scale, scale);/
-  ctx.drawImage(sourceCanvas, 0, 0)
-  ctx.restore();
-  requestAnimationFrame(draw);
-})
+requestAnimationFrame(function step() {
+  if (start) {
+    update();
+  }
+  
+  requestAnimationFrame(step);
+});
 
-const runWithExecutionCalc = (label, fn) => {
+const runWithExecutionCalc = (fn) => {
   const date = new Date();
-  // console.time(label);
   fn();
-  // console.timeEnd(label);
   timeEl.innerHTML = `${new Date() - date} ms`;
 }
+
+UI.generate.onclick = () => {
+  board.autoGenerate();
+  update();
+}
+
+UI.start.onclick = () => {
+  start = !start;
+  UI.start.innerHTML = !start ? "Начать игру" : "Остановить игру";
+}
+
+init();
