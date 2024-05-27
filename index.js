@@ -1,9 +1,3 @@
-// https://stackoverflow.com/questions/58482163/how-to-improve-html-canvas-performance-drawing-pixels
-
-// 00 -> 0 Prev: dead, current: dead
-// 01 -> 1 Prev: dead, current: alive
-// 10 -> 2 Prev: alive, current: dead
-// 11 -> 3 Prev: alive, current: alive
 class Board {
   constructor(size) {
     this.size = size;
@@ -22,10 +16,6 @@ class Board {
       this.tempGrid[i] = value;
     }
     this.gridLength = this.grid.length;
-    // console.log(this.grid)
-    // this.update();
-    // console.log(this.grid)
-    // console.log(this.tempGrid)
   }
 
   autoGeneration() {
@@ -40,16 +30,13 @@ class Board {
     for (let i = 0; i < this.grid.length; i++) {       
       const newValue = this.getNewValue(this.tempGrid, i);
       this.grid[i] = newValue;
-      // console.log(newValue)
       callback(this.grid[i], i);
     }
-    // this.tempGrid = this.grid.slice(0, this.grid.length);
     this.tempGrid = this.grid.slice(0, this.grid.length);
   }
   
   getNewValue(grid, index) {
     const neighboursLength = this.getNeighbours(grid, index);
-    // console.log(neighboursLength)
     
     if (!grid[index]) {
       return this.ruleOne(neighboursLength);
@@ -62,25 +49,31 @@ class Board {
     const x = index % this.size,
         y = ~~(index / this.size);
 
-
     const top = index + (y == 0 ? this.gridLength - this.size : -this.size);
     const bottom = index + ((y == (this.size - 1)) ? -(this.gridLength - this.size) : this.size);
     const left = x == 0 ? this.size - 1 : -1;
     const right = x == (this.size - 1) ? -(this.size - 1) : 1;
-    // // console.log(`topleft: ${index+topLeft}, top: ${index+top}, topright: ${index+topRight}`);
-    // // console.log(`left: ${index+left}, center: ${index}, right: ${index+right}`);
-    // // console.log(`bottomleft: ${index+bottomLeft}, bottom: ${index+bottom}, bottomright: ${index+bottomRight}`);
 
-    return (
-      grid[top] + 
+    // const x = index % 3000,
+    //     y = ~~(index / 3000);
+
+    // const top = index + (y == 0 ? 9000000 - 3000 : -3000);
+    // const bottom = index + ((y == (3000 - 1)) ? -(9000000 - 3000) : 3000);
+    // const left = x == 0 ? 3000 - 1 : -1;
+    // const right = x == (3000 - 1) ? -(3000 - 1) : 1;
+
+    // return 0;
+
+    const count = grid[top] + 
       grid[bottom] +
       grid[index + left] + 
       grid[index + right] + 
       grid[top + left] +
       grid[top + right] + 
       grid[bottom + left] + 
-      grid[bottom + right]
-    )
+      grid[bottom + right];
+
+    return count;
   }
 
   ruleOne(neighboursLength) {
@@ -92,9 +85,11 @@ class Board {
   }
 }
 
+const timeEl = document.querySelector("#time");
+
 const sourceCanvas = document.createElement("canvas");
 
-const GRID_SIZE = 1500;
+const GRID_SIZE = 1000;
 const board = new Board(GRID_SIZE);
 board.createBoard();
 
@@ -105,22 +100,40 @@ ctx.imageSmoothingEnabled= false;
 sourceCanvas.width = sourceCanvas.height = GRID_SIZE;
 const ctx2 = sourceCanvas.getContext("2d");
 
-// canvas.width = canvasWrapper.offsetWidth;
-// canvas.height = canvasWrapper.offsetHeight;
 canvas.width = canvas.height = Math.min(canvasWrapper.offsetWidth, canvasWrapper.offsetHeight);
 
-const getScale = (a, b) => {
-  // return Math.min(a, b) / Math.max(a, b);
-  if (a < b) {
-    return a / b;
+const getScale = (canvas, grid) => {
+  const cw = canvas.width,
+    ch = canvas.height,
+    gw = grid.width,
+    gh = grid.height;
+
+  console.log(cw, ch)
+  console.log(gw, gh)
+  
+  if (cw < gw || ch < gh) {
+    if (gw < gh) {
+      if(gw > cw) {
+        return cw / gw;
+      }
+    } else {
+      if(gw > cw) {
+        return cw / gw;
+      }
+    }
+
   }
-  return b / a;
+
+  return 1;
 }
 
 const data = ctx2.createImageData(GRID_SIZE, GRID_SIZE);
-const scale = getScale(GRID_SIZE, canvas.width);
+const scale = getScale(canvas, { width: GRID_SIZE, height: GRID_SIZE });
+console.log(getScale(GRID_SIZE, canvas.width), scale)
 
 requestAnimationFrame(function draw() {
+  ctx.fillStyle = "red"
+  ctx.fillRect(0, 0, 100, 100);
   runWithExecutionCalc("update", () => board.update((state, index) => {
     const color = state ? 0 : 255;
     data.data[index * 4] = color;
@@ -130,14 +143,16 @@ requestAnimationFrame(function draw() {
   }));
   ctx.save();
   ctx2.putImageData(data, 0, 0);
-  ctx.scale(scale, scale);
+  // ctx.scale(scale, scale);/
   ctx.drawImage(sourceCanvas, 0, 0)
   ctx.restore();
   requestAnimationFrame(draw);
 })
 
 const runWithExecutionCalc = (label, fn) => {
+  const date = new Date();
   // console.time(label);
   fn();
   // console.timeEnd(label);
+  timeEl.innerHTML = `${new Date() - date} ms`;
 }
