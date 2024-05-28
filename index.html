@@ -13,15 +13,20 @@
     </div>
     <label for="width">
       Ширина поля
-      <input id="width" type="number" value="5" />
+      <input id="width" type="number" value="500" min="10" />
     </label>
     <label for="height">
       Высота поля
-      <input id="height" type="number" value="5" />
+      <input id="height" type="number" value="500" min="10" />
     </label>
 
     <button id="generate">Автогенерация</button>
     <button id="start">Начать игру</button>
+    <div class="button--art">
+      <button id="art">Начать art</button>
+      <span>Для начала нарисуйте что-нибудь на canvas</span>
+    </div>
+
   </aside>
   <main id="app">
     <canvas></canvas>
